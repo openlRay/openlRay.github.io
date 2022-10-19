@@ -1,0 +1,1135 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.2">Jekyll</generator><link href="https://mazhuang.org/feed.xml" rel="self" type="application/atom+xml" /><link href="https://mazhuang.org/" rel="alternate" type="text/html" /><updated>2022-10-19T22:41:15+08:00</updated><id>https://mazhuang.org/feed.xml</id><title type="html">码志</title><subtitle>马壮的个人博客，公众号：闷骚的程序员</subtitle><author><name>Zhuang Ma</name></author><entry><title type="html">修复 MacVim 9.0 的 Python3 支持</title><link href="https://mazhuang.org/2022/09/22/enable-python3-in-macvim/" rel="alternate" type="text/html" title="修复 MacVim 9.0 的 Python3 支持" /><published>2022-09-22T00:00:00+08:00</published><updated>2022-09-22T00:00:00+08:00</updated><id>https://mazhuang.org/2022/09/22/enable-python3-in-macvim</id><content type="html" xml:base="https://mazhuang.org/2022/09/22/enable-python3-in-macvim/">&lt;p&gt;前两天刚刚升级到了 MacVim 9.0 的最新版本，日常编辑编辑文字没遇到过什么问题，直到今天动了一下插件。&lt;/p&gt;
+
+&lt;h2 id=&quot;发现问题&quot;&gt;发现问题&lt;/h2&gt;
+
+&lt;p&gt;今早看到一个有意思的 Vim 插件，安装上试用了下，感觉对我来说不太实用，就删掉配置，打算运行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;:PlugClean&lt;/code&gt; 清理掉它，结果 MacVim 提示我即将删掉的插件有两个——除了试用的这个以外，还有 LeaderF。&lt;/p&gt;
+
+&lt;p&gt;LeaderF 是我用得比较多的插件之一了，我并没有表明意图我要删掉它，是发生了什么让 vim-plug 这样以为呢？肯定是有什么误会。&lt;/p&gt;
+
+&lt;p&gt;我的 _vimrc 文件里，添加 LeaderF 插件是这样写的：&lt;/p&gt;
+
+&lt;div class=&quot;language-vim highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;has&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'python'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;has&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'python3'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    Plug &lt;span class=&quot;s1&quot;&gt;'Yggdroot/LeaderF'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'do'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;':LeaderfInstallCExtension'&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;endif&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;于是打开一个 MacVim 窗口，试了下 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;:echo has('python')&lt;/code&gt; 和 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;:echo has('python3')&lt;/code&gt;，输出竟然都是 0，那就难怪了……&lt;/p&gt;
+
+&lt;h2 id=&quot;分析问题&quot;&gt;分析问题&lt;/h2&gt;
+
+&lt;p&gt;一开始主要想弄清楚两点：&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;我使用的 MacVim 版本编译时究竟有没有启用 Python 支持？&lt;/p&gt;
+
+    &lt;p&gt;在 MacVim 窗口里运行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;:version&lt;/code&gt;，可以看到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+python/dyn&lt;/code&gt; 和 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;+python3/dyn&lt;/code&gt;，那说明同时启用了 Python 和 Python3 支持。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;我本地有没有安装 Python？&lt;/p&gt;
+
+    &lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python
+ zsh: &lt;span class=&quot;nb&quot;&gt;command &lt;/span&gt;not found: python
+
+ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;brew list | &lt;span class=&quot;nb&quot;&gt;grep &lt;/span&gt;python
+ python@3.10
+ python@3.8
+ python@3.9
+
+ &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;python3
+ Python 3.9.12 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;main, Mar 26 2022, 15:51:15&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+ &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;Clang 13.1.6 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;clang-1316.0.21.2&lt;span class=&quot;o&quot;&gt;)]&lt;/span&gt; on darwin
+ Type &lt;span class=&quot;s2&quot;&gt;&quot;help&quot;&lt;/span&gt;, &lt;span class=&quot;s2&quot;&gt;&quot;copyright&quot;&lt;/span&gt;, &lt;span class=&quot;s2&quot;&gt;&quot;credits&quot;&lt;/span&gt; or &lt;span class=&quot;s2&quot;&gt;&quot;license&quot;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;more information.
+ &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+
+    &lt;p&gt;可以看到我本地安装了 Python3 的 3.8、3.9、3.10 三个版本，默认 3.9，没有安装 Python2。&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;这没什么问题，那继续找，尝试下在 MacVim 里执行 Python3 语句：&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;:py3 import sys;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;结果输出了一堆报错：&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;E370: 无法加载库 /usr/local/Frameworks/Python.framework/Versions/3.10/Python：dlopen(/usr/local/Frameworks/Python.fram
+ework/Versions/3.10/Python, 0x0009): tried: '/usr/local/Frameworks/Python.framework/Versions/3.10/Python' (no such fil
+e), '/Library/Frameworks/Python.framework/Versions/3.10/Python' (no such file), '/System/Library/Frameworks/Python.fra
+mework/Versions/3.10/Python' (no such file)
+E263: 抱歉，此命令不可用，无法加载 Python 库。
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;它要找的这个文件路径确实不存在……毕竟我默认的是 3.9 版本，所以  /usr/local/Frameworks/Python.framework/Versions/ 下只有 3.9 和 current 目录，没有 3.10。&lt;/p&gt;
+
+&lt;p&gt;它为啥放着配置好的 3.9 版本不用，非得这么头铁去找 3.10 版本呢？这个问题先不回答，留待后面的刨根问底环节。现在先解决问题。&lt;/p&gt;
+
+&lt;h2 id=&quot;解决问题&quot;&gt;解决问题&lt;/h2&gt;
+
+&lt;p&gt;在网上将以上错误信息搜索一番后，了解到了可以通过设置 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pythonthreedll&lt;/code&gt; 来指定动态加载的 Python3 支持库。&lt;/p&gt;
+
+&lt;p&gt;另外，也了解了一下，通过 brew 安装的多个 Python 版本如何切换默认版本。&lt;/p&gt;
+
+&lt;p&gt;所以这个小问题找到了两种解决方法：&lt;/p&gt;
+
+&lt;p&gt;一、在 _vimrc 里添加配置，指定动态加载的 Python3 支持库路径，比如：&lt;/p&gt;
+
+&lt;div class=&quot;language-vim highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt; &amp;amp;&lt;span class=&quot;nb&quot;&gt;pythonthreedll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'/usr/local/Frameworks/Python.framework/Versions/3.9/python'&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;二、切换系统默认 Python3 版本，比如这里 MacVim 寻找 3.10 版本，我就把默认的切换到 3.10 版本好了：&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;brew &lt;span class=&quot;nb&quot;&gt;unlink &lt;/span&gt;python@3.9
+brew &lt;span class=&quot;nb&quot;&gt;link &lt;/span&gt;python@3.10
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;经验证以上两个方法都可以解决问题，我最终用了第二种。&lt;/p&gt;
+
+&lt;h2 id=&quot;刨根问底&quot;&gt;刨根问底&lt;/h2&gt;
+
+&lt;p&gt;上面我们遗留了一个问题，为什么 MacVim 那么头铁非要加载 3.10 版本的 Python 支持库呢？&lt;/p&gt;
+
+&lt;p&gt;首先看一下 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pythonthreedll&lt;/code&gt; 的帮助文档说明：&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;:h pythonthreedll
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;可以看到：&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;'pythonthreedll'	string	(default depends on the build)
+			global
+			{only available when compiled with the |+python3/dyn|
+			feature}
+	Specifies the name of the Python 3 shared library. The default is
+	DYNAMIC_PYTHON3_DLL, which was specified at compile time.
+	Environment variables are expanded |:set_env|.
+	This option cannot be set from a |modeline| or in the |sandbox|, for
+	security reasons.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;也就是说默认值是在编译时指定的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DYNAMIC_PYTHON3_DLL&lt;/code&gt; 值，按我理解那就是说如果没有在配置文件里人为指定，那它就是会按编译时指定的去加载。&lt;/p&gt;
+
+&lt;p&gt;那编译时的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DYNAMIC_PYTHON3_DLL&lt;/code&gt;，我们可以在 MacVim 的官方仓库 &lt;a href=&quot;https://github.com/macvim-dev/macvim/blob/master/.github/workflows/ci-macvim.yaml&quot;&gt;.github/worflows/ci-macvim.yaml&lt;/a&gt; 里找到，关键内容：&lt;/p&gt;
+
+&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nn&quot;&gt;...&lt;/span&gt;
+
+  &lt;span class=&quot;na&quot;&gt;vi_cv_dll_name_python3&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/usr/local/Frameworks/Python.framework/Versions/3.10/Python&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Make sure to keep src/MacVim/vimrc synced with the Python version here for the Python DLL detection logic.&lt;/span&gt;
+
+&lt;span class=&quot;nn&quot;&gt;...&lt;/span&gt;
+
+          &lt;span class=&quot;s&quot;&gt;grep -q -- &quot;-DDYNAMIC_PYTHON3_DLL=\\\\\&quot;${vi_cv_dll_name_python3}\\\\\&quot;&quot; src/auto/config.mk&lt;/span&gt;
+
+&lt;span class=&quot;nn&quot;&gt;...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;至此破案了。&lt;/p&gt;
+
+&lt;h2 id=&quot;参考&quot;&gt;参考&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.jianshu.com/p/18f06d12348c&quot;&gt;https://www.jianshu.com/p/18f06d12348c&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Zhuang Ma</name></author><category term="Vim" /><summary type="html">前两天刚刚升级到了 MacVim 9.0 的最新版本，日常编辑编辑文字没遇到过什么问题，直到今天动了一下插件。</summary></entry><entry><title type="html">使用 iPhone 感觉不好的几点体验</title><link href="https://mazhuang.org/2022/03/06/iphone-vs-xiaomi/" rel="alternate" type="text/html" title="使用 iPhone 感觉不好的几点体验" /><published>2022-03-06T00:00:00+08:00</published><updated>2022-03-06T00:00:00+08:00</updated><id>https://mazhuang.org/2022/03/06/iphone-vs-xiaomi</id><content type="html" xml:base="https://mazhuang.org/2022/03/06/iphone-vs-xiaomi/">&lt;p&gt;上周有天晚上加完班下雨了，媳妇儿开车顺道带我回家，到家后过了一会儿她突然说，「对了，给你个东西」，然后从包里拿出一个黑盒子递给我，我正坐那刷沙雕视频，也没细看，见挺小一个盒子，随口问了一句「啥？充电宝啊？」，得到的是充满鄙夷的回复，「我们家需要那玩意儿吗，我买那干啥？」，接过来翻面一看，哦豁原来是 iPhone 13 Pro。&lt;/p&gt;
+
+&lt;p&gt;使用这几天后，对比原来用小米手机，感觉有几点不那么方便的地方，记录一下，看后面用习惯之后是否会有改观。&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;屏幕解锁&lt;/p&gt;
+
+    &lt;p&gt;Face ID 挺好用的，但是，戴上口罩它不好使了，又不支持指纹解锁，在外面每次使用手机就要手动输入 6 位数字密码，就很尴尬。&lt;/p&gt;
+
+    &lt;p&gt;不过听说开发版已经支持口罩解锁了，这一点后续应该会得到改善。&lt;/p&gt;
+
+    &lt;p&gt;&lt;strong&gt;Update 2022/03/14:&lt;/strong&gt; iOS 更新到 15.4 之后，已经支持戴口罩解锁，虽然有少量时候不是那么灵敏，但总体体验已经不错了。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;NFC 相关功能&lt;/p&gt;
+
+    &lt;p&gt;以刷公交卡为例（这个可能跟地域性体验相关），苹果钱包里目前不支持添加武汉通公交卡，这样用 NFC 刷地铁只能直接刷 Apple Pay 从银行卡里扣，这就需要先解锁手机，手动输入一波密码（因为在外面都戴着口罩无法面容解锁），然后还要按键确认，体验不好，这个得等啥时候支持武汉通了才会有改善。&lt;/p&gt;
+
+    &lt;p&gt;另外，貌似也不支持写入加密门禁卡。&lt;/p&gt;
+
+    &lt;p&gt;&lt;strong&gt;Update 2022/03/14:&lt;/strong&gt; iOS 更新到 15.4 之后，支持戴口罩面容解锁了，NFC 刷武汉地铁的操作变成了唤起 Apple Pay - 面容解锁 - 刷卡，体验好了一些，当然比直接盲刷还是有差距。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;充电&lt;/p&gt;
+
+    &lt;p&gt;现在支持快充的安卓手机充电比苹果要快得多，这个对特定硬件来讲，暂时应该没有啥改善的可能性。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;管理照片/文件&lt;/p&gt;
+
+    &lt;p&gt;安卓手机连接上电脑后，就能像管理一个普通文件夹一样操作照片、文件等；苹果手机与此不同，我用「迁移到 iOS」应用同步旧数据时，最后两分钟报错了，我先没放在心上，照常使用，后来发现照片少了挺多，就想办法重新拷贝。尝试了一些办法，折腾了大半天才解决。&lt;/p&gt;
+
+    &lt;p&gt;尝试过的方法：&lt;/p&gt;
+
+    &lt;ul&gt;
+      &lt;li&gt;从 MacBook 同步照片/文件夹，用这个办法，拷贝照片没问题，但有个坑，拷贝过去的文件手机上无法删除，只能在电脑上将对应的文件删除后，手机连上电脑，再次同步。这就很令人心塞……我在手机上看着那些文件，却无法管理。最终放弃该方案。&lt;/li&gt;
+      &lt;li&gt;在 MacBook 和 iPhone 上同时开启照片的 iCloud 同步，最终也是使用了这种方法。遇到的坑：iCloud 上传照片是不去重的，只好上 https://icloud.com 将所有照片清空（包括最近删除的），然后重新把所有照片导到电脑的「照片」里。这里有个教训是打开 iCloud 网站请使用 Safari 浏览器，用其它浏览器（如 Edge）各种报错打不开。&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;APP 里返回&lt;/p&gt;
+
+    &lt;p&gt;安卓全面屏手机一般可以设置为左、右边缘滑动均触发返回，但苹果手机只能由左边缘触发，右边缘无反应，右手持机时体验不佳。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;呼吸灯&lt;/p&gt;
+
+    &lt;p&gt;苹果手机没有前置呼吸灯。虽然可以设置为有通知时相机闪光灯闪烁，但在背面啊，而且，动静太大。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;微信语音/视频通话&lt;/p&gt;
+
+    &lt;p&gt;有天偶然看到一个新闻说微信 iOS 版在内测 Callkit，然后找人微信 call 了我一下，才发现在锁屏界面是无法直接接听微信语音和视频通话的，一脸问号，今夕何夕？&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;后续有想到的其它的点，或者这几个点体验有变化了，我再更新。&lt;/p&gt;</content><author><name>Zhuang Ma</name></author><category term="Blog" /><summary type="html">上周有天晚上加完班下雨了，媳妇儿开车顺道带我回家，到家后过了一会儿她突然说，「对了，给你个东西」，然后从包里拿出一个黑盒子递给我，我正坐那刷沙雕视频，也没细看，见挺小一个盒子，随口问了一句「啥？充电宝啊？」，得到的是充满鄙夷的回复，「我们家需要那玩意儿吗，我买那干啥？」，接过来翻面一看，哦豁原来是 iPhone 13 Pro。</summary></entry><entry><title type="html">在 Mac 下编译 chaosblade</title><link href="https://mazhuang.org/2022/02/19/compile-chaosblade-on-mac/" rel="alternate" type="text/html" title="在 Mac 下编译 chaosblade" /><published>2022-02-19T00:00:00+08:00</published><updated>2022-02-19T00:00:00+08:00</updated><id>https://mazhuang.org/2022/02/19/compile-chaosblade-on-mac</id><content type="html" xml:base="https://mazhuang.org/2022/02/19/compile-chaosblade-on-mac/">&lt;p&gt;首先声明，这不是一份指南，这是一份失败的操作流水记录。我得到的最终结果：编译成功，但是无法运行，放弃在 Mac 平台直接使用此工具，乖乖用 Linux 或者容器环境。&lt;/p&gt;
+
+&lt;p&gt;以下问题的遇到和解决记录，基本是按时间序。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/chaosblade-io/chaosblade#compile&quot;&gt;chaosblade 项目的 README 上自行编译部分&lt;/a&gt; 说明很简单，就是 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;make build_darwin&lt;/code&gt; 这么一条命令而已。&lt;/p&gt;
+
+&lt;h2 id=&quot;环境准备&quot;&gt;环境准备&lt;/h2&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装 go，&lt;a href=&quot;https://go.dev/&quot;&gt;https://go.dev/&lt;/a&gt; 下载最新版安装，我安装的是 1.17.7 版本，然后将 /usr/local/go/bin 添加到 PATH。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装和配置 JAVA 环境。（我以前装过，本次先没动它，但实际后面也遇到问题与此相关。）&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装 Docker Desktop。&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;下载源码开始编译&quot;&gt;下载源码，开始编译&lt;/h2&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;git clone git@github.com:chaosblade-io/chaosblade.git
+&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;chaosblade
+make build_darwin
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;然后，兵来将挡，水来土掩的问题解决之旅开始了。&lt;/p&gt;
+
+&lt;h2 id=&quot;遇到问题解决问题&quot;&gt;遇到问题，解决问题&lt;/h2&gt;
+
+&lt;h3 id=&quot;0x01-网络问题&quot;&gt;0x01 网络问题&lt;/h3&gt;
+
+&lt;p&gt;编译过程中需要下载一些源码和二进制文件，首先遇到了网络问题。&lt;/p&gt;
+
+&lt;p&gt;如果遇到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;timeout&lt;/code&gt; 或者 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fatal: 无法访问 'xxxx'：LibreSSL SSL_connect: Operation timed out in connection to xxx.com:443&lt;/code&gt; 之类的提示，一般是因为有一些资源偶尔需要科学上网才能访问。&lt;/p&gt;
+
+&lt;p&gt;解决方法：&lt;/p&gt;
+
+&lt;p&gt;终端挂代理：&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;http_proxy&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;http://127.0.0.1:54107
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;https_proxy&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;http://127.0.0.1:54107
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;no_proxy&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;chaosblade.oss-cn-hangzhou.aliyuncs.com&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;其中代理自备，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;no_proxy&lt;/code&gt; 那一行是指定从阿里域名下载不走代理。&lt;/p&gt;
+
+&lt;p&gt;如果遇到下载 &lt;a href=&quot;https://chaosblade.oss-cn-hangzhou.aliyuncs.com/agent/github/sandbox/sandbox-1.3.1-bin.zip&quot;&gt;https://chaosblade.oss-cn-hangzhou.aliyuncs.com/agent/github/sandbox/sandbox-1.3.1-bin.zip&lt;/a&gt; 特别慢，几 kb/s 的速度，但是用浏览器下载很快，那可以先停掉编译，直接用浏览器下载好该文件，放到 target/cache/chaosblade-exec-jvm/build-target/cache 下面，再重新开始编译。&lt;/p&gt;
+
+&lt;p&gt;同理：&lt;/p&gt;
+
+&lt;p&gt;如果遇到下载 &lt;a href=&quot;https://chaosblade.oss-cn-hangzhou.aliyuncs.com/agent/release/tools.jar&quot;&gt;https://chaosblade.oss-cn-hangzhou.aliyuncs.com/agent/release/tools.jar&lt;/a&gt; 特别慢，可以先停掉编译，直接用浏览器下载好该文件，放到 target/cache/chaosblade-exec-jvm/build-target/cache 下面，再重新开始编译。&lt;/p&gt;
+
+&lt;p&gt;例外是如果遇到下载 &lt;a href=&quot;https://chaosblade.oss-cn-hangzhou.aliyuncs.com/agent/github/1.5.0/chaosblade-1.5.0-linux-amd64.tar.gz&quot;&gt;https://chaosblade.oss-cn-hangzhou.aliyuncs.com/agent/github/1.5.0/chaosblade-1.5.0-linux-amd64.tar.gz&lt;/a&gt; 特别慢，手动下载，放到 target/cache/chaosblade-operator/build/cache 也不行，编译过程只认自己下载的。&lt;/p&gt;
+
+&lt;p&gt;由以上得出的小技巧：&lt;/p&gt;
+
+&lt;p&gt;如果从 GitHub release 界面下载 chaosblade 的 release 文件特别慢，比如 &lt;a href=&quot;https://github.com/chaosblade-io/chaosblade/releases/download/v1.3.0/chaosblade-1.3.0-darwin-amd64.tar.gz&quot;&gt;https://github.com/chaosblade-io/chaosblade/releases/download/v1.3.0/chaosblade-1.3.0-darwin-amd64.tar.gz&lt;/a&gt;，可以将链接替换为 &lt;a href=&quot;https://chaosblade.oss-cn-hangzhou.aliyuncs.com/agent/github/1.3.0/chaosblade-1.3.0-darwin-amd64.tar.gz&quot;&gt;https://chaosblade.oss-cn-hangzhou.aliyuncs.com/agent/github/1.3.0/chaosblade-1.3.0-darwin-amd64.tar.gz&lt;/a&gt; 加速下载。&lt;/p&gt;
+
+&lt;h3 id=&quot;0x02-go-依赖模块问题&quot;&gt;0x02 go 依赖模块问题&lt;/h3&gt;
+
+&lt;p&gt;如果遇到&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt;/model.go:22:2: missing go.sum entry &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;module providing package github.com/chaosblade-io/chaosblade-exec-os/exec &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;imported by github.com/chaosblade-io/chaosblade-exec-docker/exec&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; to add:
+        go get github.com/chaosblade-io/chaosblade-exec-docker/exec
+&lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt;/executor_execin.go:29:2: missing go.sum entry &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;module providing package github.com/chaosblade-io/chaosblade-spec-go/channel &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;imported by github.com/chaosblade-io/chaosblade-exec-docker/exec&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; to add:
+        go get github.com/chaosblade-io/chaosblade-exec-docker/exec
+&lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt;/client.go:29:2: missing go.sum entry &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;module providing package github.com/chaosblade-io/chaosblade-spec-go/spec&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; to add:
+        go mod download github.com/chaosblade-io/chaosblade-spec-go
+&lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt;/container.go:24:2: missing go.sum entry &lt;span class=&quot;k&quot;&gt;for &lt;/span&gt;module providing package github.com/chaosblade-io/chaosblade-spec-go/util&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; to add:
+        go mod download github.com/chaosblade-io/chaosblade-spec-go
+make[1]: &lt;span class=&quot;k&quot;&gt;***&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;build_yaml] Error 1
+make: &lt;span class=&quot;k&quot;&gt;***&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;docker] Error 2
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;到 target/cache/chaosblade-exec-docker 和 target/cache/chaosblade-exec-os 目录下执行&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;go mod tidy
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;整理依赖，参考 &lt;a href=&quot;https://stackoverflow.com/questions/67203641/missing-go-sum-entry-for-module-providing-package-package-name&quot;&gt;https://stackoverflow.com/questions/67203641/missing-go-sum-entry-for-module-providing-package-package-name&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;0x03-java-编译问题&quot;&gt;0x03 Java 编译问题&lt;/h3&gt;
+
+&lt;p&gt;如果遇到报错：&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project chaosblade-exec-spi: Compilation failure: Compilation failure:
+[ERROR] 不再支持源选项 6。请使用 7 或更高版本。
+[ERROR] 不再支持目标选项 6。请使用 7 或更高版本。
+[ERROR] -&amp;gt; [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR]
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn &amp;lt;args&amp;gt; -rf :chaosblade-exec-spi
+make[1]: *** [build_java] Error 1
+make: *** [java] Error 2
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;修改 target/cache/chaosblade-exec-jvm/chaosblade-exec-spi/pom.xml 里的&lt;/p&gt;
+
+&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;6&lt;span class=&quot;nt&quot;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;target&amp;gt;&lt;/span&gt;6&lt;span class=&quot;nt&quot;&gt;&amp;lt;/target&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;为&lt;/p&gt;
+
+&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;8&lt;span class=&quot;nt&quot;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;target&amp;gt;&lt;/span&gt;8&lt;span class=&quot;nt&quot;&gt;&amp;lt;/target&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;同理，后面还会遇到类似的报错，对应还要修改：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-common/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-service/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-bootstrap/chaosblade-exec-bootstrap-jvmsandbox/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-dubbo/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-jvm/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-mysql/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-postgrelsql/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-servlet/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-jedis/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-elasticsearch/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-hbase/pom.xml&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;另外：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/pom.xml&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-dubbo/pom.xml（存疑）&lt;/li&gt;
+  &lt;li&gt;target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-http/pom.xml（存疑）&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;里是需要添加&lt;/p&gt;
+
+&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;build&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;plugins&amp;gt;&lt;/span&gt;
+        &lt;span class=&quot;nt&quot;&gt;&amp;lt;plugin&amp;gt;&lt;/span&gt;
+            &lt;span class=&quot;nt&quot;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.apache.maven.plugins&lt;span class=&quot;nt&quot;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+            &lt;span class=&quot;nt&quot;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;maven-compiler-plugin&lt;span class=&quot;nt&quot;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+            &lt;span class=&quot;nt&quot;&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+                &lt;span class=&quot;nt&quot;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;8&lt;span class=&quot;nt&quot;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+                &lt;span class=&quot;nt&quot;&gt;&amp;lt;target&amp;gt;&lt;/span&gt;8&lt;span class=&quot;nt&quot;&gt;&amp;lt;/target&amp;gt;&lt;/span&gt;
+            &lt;span class=&quot;nt&quot;&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+        &lt;span class=&quot;nt&quot;&gt;&amp;lt;/plugin&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;/plugins&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/build&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;如果遇到&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project chaosblade-exec-plugin-redisson: Compilation failure
+[ERROR] /Users/mazhuang/github/chaosblade/target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-redisson/src/main/java/com/alibaba/chaosblade/exec/plugin/redisson/RedissonEnhancer.java:[52,23] 对info的引用不明确
+[ERROR]   org.slf4j.Logger 中的方法 info(java.lang.String,java.lang.Object...) 和 org.slf4j.Logger 中的方法 info(java.lang.String,java.lang.Throwable) 都匹配
+[ERROR]
+[ERROR] -&amp;gt; [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR]
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn &amp;lt;args&amp;gt; -rf :chaosblade-exec-plugin-redisson
+make[1]: *** [build_java] Error 1
+make: *** [java] Error 2
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;修改 target/cache/chaosblade-exec-jvm/chaosblade-exec-plugin/chaosblade-exec-plugin-redisson/src/main/java/com/alibaba/chaosblade/exec/plugin/redisson/RedissonEnhancer.java&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;no&quot;&gt;LOGGER&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;method command {}&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ReflectUtil&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;invokeMethod&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;getName&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;改成&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tmpResult&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;  &lt;span class=&quot;nc&quot;&gt;ReflectUtil&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;invokeMethod&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;getName&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;no&quot;&gt;LOGGER&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;method command {}&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tmpResult&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;如果遇到&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project chaosblade-exec-common: Fatal error compiling: java.lang.IllegalAccessError: class lombok.javac.apt.LombokProcessor (in unnamed module @0x45da40ad) cannot access class com.sun.tools.javac.processing.JavacProcessingEnvironment (in module jdk.compiler) because module jdk.compiler does not export com.sun.tools.javac.processing to unnamed module @0x45da40ad -&amp;gt; [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+[ERROR]
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn &amp;lt;args&amp;gt; -rf :chaosblade-exec-common
+make[1]: *** [build_java] Error 1
+make: *** [java] Error 2
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;将 target/cache/chaosblade-exec-jvm/chaosblade-exec-common/pom.xml&lt;/p&gt;
+
+&lt;p&gt;lombok 版本由 1.18.10 改为 1.18.20，参考 https://www.cnblogs.com/ZZG-GANGAN/p/14789050.html&lt;/p&gt;
+
+&lt;p&gt;如果遇到&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;The&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;JAVA_HOME&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;variable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;defined&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;correctly&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;this&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;variable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;needed&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;run&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;program&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;make&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;***&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;build_java&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Error&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;nl&quot;&gt;make:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;***&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;java&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Error&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;那配置 JAVA_HOME：&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;/usr/libexec/java_home &lt;span class=&quot;nt&quot;&gt;-V&lt;/span&gt;
+vim ~/.zshrc
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;JAVA_HOME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/Library/Java/JavaVirtualMachines/jdk1.8.0_271.jdk/Contents/Home
+&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$JAVA_HOME&lt;/span&gt;/bin:&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;
+:wq
+&lt;span class=&quot;nb&quot;&gt;source&lt;/span&gt; ~/.zshrc
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;0x04-docker-问题&quot;&gt;0x04 Docker 问题&lt;/h3&gt;
+
+&lt;p&gt;如果遇到&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.
+See 'docker run --help'.
+make: *** [upx] Error 125
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;启动 Docker Desktop，然后再开始编译。&lt;/p&gt;
+
+&lt;h3 id=&quot;0x0x-未知&quot;&gt;0x0x 未知&lt;/h3&gt;
+
+&lt;p&gt;编码过程中有个警告，不知道有无影响：&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;WARN[0000] parse java spec failed, so skip it, open build/cache/chaosblade/yaml/chaosblade-jvm-spec-1.5.0.yaml: no such file or directory
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;结果&quot;&gt;结果&lt;/h2&gt;
+
+&lt;p&gt;终于编译成功了，生成了 target/chaosblade-1.5.0.tar.gz 文件。&lt;/p&gt;
+
+&lt;p&gt;但解压后执行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;./blade&lt;/code&gt;，输出：&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;zsh: killed     ./blade
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;下载官方 Release 的 1.3.0 的 darwin 版本文件，也是报同样的问题。&lt;/p&gt;
+
+&lt;p&gt;到 &lt;a href=&quot;https://github.com/chaosblade-io/chaosblade/issues&quot;&gt;Issues&lt;/a&gt; 里翻到了几个类似的问题，官方给出的 &lt;a href=&quot;https://github.com/chaosblade-io/chaosblade/issues/478&quot;&gt;建议&lt;/a&gt;，比如修改系统【安全与隐私】-【通用】配置等，经验证都无效。&lt;/p&gt;
+
+&lt;p&gt;至此，如文首所述，放弃了在 Mac 平台下折腾，直接用 Linux 或者容器环境来体验。&lt;/p&gt;</content><author><name>Zhuang Ma</name></author><category term="混沌工程" /><summary type="html">首先声明，这不是一份指南，这是一份失败的操作流水记录。我得到的最终结果：编译成功，但是无法运行，放弃在 Mac 平台直接使用此工具，乖乖用 Linux 或者容器环境。</summary></entry><entry><title type="html">给 zsh 自定义命令添加参数自动补全</title><link href="https://mazhuang.org/2022/02/12/zsh-completion/" rel="alternate" type="text/html" title="给 zsh 自定义命令添加参数自动补全" /><published>2022-02-12T00:00:00+08:00</published><updated>2022-02-12T00:00:00+08:00</updated><id>https://mazhuang.org/2022/02/12/zsh-completion</id><content type="html" xml:base="https://mazhuang.org/2022/02/12/zsh-completion/">&lt;p&gt;有时我会自定义一些 zsh 命令，以便提升某些高频操作的效率。本文记录我给一个自定义命令添加参数自动补全的方法。&lt;/p&gt;
+
+&lt;h2 id=&quot;场景&quot;&gt;场景&lt;/h2&gt;
+
+&lt;p&gt;我自定义了一个 zsh 命令 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gmt&lt;/code&gt;，执行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gmt &amp;lt;b2&amp;gt;&lt;/code&gt;，可以将当前所在的 git 分支 merge 到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;b2&amp;gt;&lt;/code&gt; 这个分支。&lt;/p&gt;
+
+&lt;p&gt;它具体完成以下工作：&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;切换到 git 分支 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;b2&amp;gt;&lt;/code&gt;；&lt;/li&gt;
+  &lt;li&gt;将 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;b2&amp;gt;&lt;/code&gt; 分支更新到最新；&lt;/li&gt;
+  &lt;li&gt;询问是否合并，输入 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;y&lt;/code&gt; 则进行分支合并。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;也就是用一条命令完成一个 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git checkout b2&lt;/code&gt;、&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git pull origin b2&lt;/code&gt;、&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git merge b1&lt;/code&gt; 这样的组合操作。&lt;/p&gt;
+
+&lt;p&gt;用了一段时间，可以省一些事，美中不足的就是有时候分支名称比较长，只能手动输入，没有自动补全。&lt;/p&gt;
+
+&lt;h2 id=&quot;期望效果&quot;&gt;期望效果&lt;/h2&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;输入 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gmt &lt;/code&gt;，然后按 &lt;kbd&gt;tab&lt;/kbd&gt;，自动提示本地的所有 git 分支名称；&lt;/li&gt;
+  &lt;li&gt;输入 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gmt fe&lt;/code&gt;，然后按 &lt;kbd&gt;tab&lt;/kbd&gt;，自动补全以 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fe&lt;/code&gt; 开头的 git 分支名称；&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;实现方法&quot;&gt;实现方法&lt;/h2&gt;
+
+&lt;p&gt;在 zsh 配置文件中添加如下代码：&lt;/p&gt;
+
+&lt;div class=&quot;language-sh highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;compdef _git_merge_to_comp git_merge_to
+
+_git_merge_to_comp&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-a&lt;/span&gt; git_branches
+    &lt;span class=&quot;nv&quot;&gt;git_branches&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(@f)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;$(&lt;/span&gt;git branch &lt;span class=&quot;nt&quot;&gt;--format&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'%(refname:short)'&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    _describe &lt;span class=&quot;s1&quot;&gt;'command'&lt;/span&gt; git_branches
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;em&gt;注：&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git_merge_to&lt;/code&gt; 是一个自定义的函数，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;gmt&lt;/code&gt; 是这个函数的 alias。&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;这段代码的意思就是使用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_git_merge_to_comp&lt;/code&gt; 这个函数来给 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git_merge_to&lt;/code&gt; 命令做自动补全，自动补全的候选列表是当前项目的所有本地 git 分支名称。&lt;/p&gt;
+
+&lt;p&gt;其中：&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;compdef&lt;/code&gt;、&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_describe&lt;/code&gt; 等的用法，可以参考 zsh 的官方文档 &lt;a href=&quot;https://zsh.sourceforge.io/Doc/Release/Completion-System.html&quot;&gt;Completion System&lt;/a&gt;。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git_branches=(&quot;${(@f)$(git branch --format='%(refname:short)')}&quot;)&lt;/code&gt; 的意思是，将 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git branch --format='%(refname:short)'&lt;/code&gt; 命令的输出按行分割后形成一个字符串数组，赋值给 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git_branches&lt;/code&gt; 变量，这部分可以参考 &lt;a href=&quot;https://unix.stackexchange.com/questions/29724/how-to-properly-collect-an-array-of-lines-in-zsh&quot;&gt;How to properly collect an array of lines in zsh&lt;/a&gt;。&lt;/p&gt;
+
+&lt;p&gt;我的 zsh 配置都上传到了 &lt;a href=&quot;https://github.com/mzlogin/config-files&quot;&gt;https://github.com/mzlogin/config-files&lt;/a&gt;，有需要可以参考下。&lt;/p&gt;
+
+&lt;h2 id=&quot;效果演示&quot;&gt;效果演示&lt;/h2&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/posts/shell/zsh-gmt-completion.gif&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;参考&quot;&gt;参考&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://zsh.sourceforge.io/Doc/Release/Completion-System.html&quot;&gt;Completion System&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://unix.stackexchange.com/questions/29724/how-to-properly-collect-an-array-of-lines-in-zsh&quot;&gt;How to properly collect an array of lines in zsh&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Zhuang Ma</name></author><category term="Shell" /><summary type="html">有时我会自定义一些 zsh 命令，以便提升某些高频操作的效率。本文记录我给一个自定义命令添加参数自动补全的方法。</summary></entry><entry><title type="html">我的 2021 盘点</title><link href="https://mazhuang.org/2022/01/01/my-2021/" rel="alternate" type="text/html" title="我的 2021 盘点" /><published>2022-01-01T00:00:00+08:00</published><updated>2022-01-01T00:00:00+08:00</updated><id>https://mazhuang.org/2022/01/01/my-2021</id><content type="html" xml:base="https://mazhuang.org/2022/01/01/my-2021/">&lt;p&gt;对于 2021 年，如果仅从岁月流逝的角度，当然是期望时光时光慢些吧；如果从这一年外界的疯狂变幻来讲，又想对它说慢走不送。但终会无力地看清，时间的洪流上并无刻度，你喜欢或者不喜欢，它并不在意，兀自「逝者如斯夫，不舍昼夜」。&lt;/p&gt;
+
+&lt;p&gt;怀着这样微妙的情绪，伴着这几天微信群和朋友圈里大家抒发的美好祝愿来到了新的一年。&lt;/p&gt;
+
+&lt;p&gt;是时候略作盘点，挥别过往，纵情向前。&lt;/p&gt;
+
+&lt;h2 id=&quot;大事记&quot;&gt;大事记&lt;/h2&gt;
+
+&lt;p&gt;总体来讲，今年没什么大的变化，如果非要记一笔，那我会选因为疫情被隔离的经历。&lt;/p&gt;
+
+&lt;p&gt;虽然常居武汉，但之前疫情最严重的时候我在老家，并没有最切身的感受，这一次却是从头经历了从成为密接，到为了和小别能做上核酸检测打各种电话求助，到隔离期间继续熬夜做项目与「隔友们」一起苦中作乐，到为了各自复工的事愁肠百结，到生活终于回归平静，个人的情绪在忐忑绝望苦闷庆幸间横跳，家人们想必也饱受煎熬，还好大家最后都无恙通关。&lt;/p&gt;
+
+&lt;p&gt;疫情已经深刻地改变了我们的生活，时至今日，我还有亲友在西安与之斗争，愿大家都平安，愿能摘下口罩自由呼吸的那天早点到来。&lt;/p&gt;
+
+&lt;h2 id=&quot;分类记录&quot;&gt;分类记录&lt;/h2&gt;
+
+&lt;p&gt;按例简单分类作回顾。&lt;/p&gt;
+
+&lt;h3 id=&quot;运动与健康&quot;&gt;运动与健康&lt;/h3&gt;
+
+&lt;p&gt;这次调整了一下顺序，将这一项提到了分类的最前面，也是因为随着年龄的增长，越来越体会到健康的重要性。&lt;/p&gt;
+
+&lt;p&gt;关键词：伤病，牙齿，保险，癌症。&lt;/p&gt;
+
+&lt;p&gt;今年的运动量仍然以羽毛球为主，跑步基本没有，游泳完全没有。还是作为公司武汉办公室羽毛球活动的主要发起者，每周组织活动，另外周末参加了少量民间活动，技术上没有什么进步，出勤率还算可以。&lt;/p&gt;
+
+&lt;p&gt;去年体检时报出的脂肪肝趋势，今年消失了，血脂和尿酸偏高的情况也有所改善，但「伤病」有点多，运动时两次崴脚一次腰伤，自己推测原因可能是除了羽毛球没有什么其它运动量，肌肉退化了，后面得搭配一些有氧和力量训练。年末买了个椭圆机放家，小别同学用得更多一点，不知道啥时候会变成晾衣架。&lt;/p&gt;
+
+&lt;p&gt;另外值得一说的是终于去医院持续接受牙周治疗了，牙齿的健康状态应该得到一定的修复，躺在治疗椅上脑补医生作业的时候真的很恐怖。每个人都要认真保养牙齿。&lt;/p&gt;
+
+&lt;p&gt;最近一年多的时间里，给我和小别同学陆续把保险配置上了，有点迟，有一些除外承保的情况，好歹也算是能稍安心一点了。&lt;/p&gt;
+
+&lt;p&gt;肺癌，这可能是我周围听说的最普遍的癌症，就身边的亲人来讲就有几例，我们这一辈人也有因此而凋零的了，彼时内心百感交集，此时也憋不出什么话语，只想说世事无常，按期体检，珍惜亲友。&lt;/p&gt;
+
+&lt;h3 id=&quot;书影音&quot;&gt;书影音&lt;/h3&gt;
+
+&lt;p&gt;数据统计自豆瓣记录。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/blog/2021-douban.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;统计数字与直观感受略有不同。&lt;/p&gt;
+
+&lt;p&gt;疫情的这两年感觉窝在家看电影电视剧的时候比之前要多了，但实际上数量并无明显增长。当然也可能是有一些未标记。&lt;/p&gt;
+
+&lt;p&gt;今年看过的影视推荐：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;《旺达幻视》：剧情喜欢，奥妹很美。&lt;/li&gt;
+  &lt;li&gt;《肖申克的救赎》：希望至美。&lt;/li&gt;
+  &lt;li&gt;《让子弹飞》：可以细品。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;读书的形式还是以 Kindle 阅读为主，略有不同的是现在读过觉得好的书会再买一本实体书收藏。&lt;/p&gt;
+
+&lt;p&gt;今年看过的图书推荐，两本都是能带来一些不同的阅读体验的：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;《沉默的病人》：双故事线，有时间差，挺特别。&lt;/li&gt;
+  &lt;li&gt;《禅与摩托车维修艺术》：很独特的一本书，读起来有小学语文老师常说的「夹叙夹议」的感觉。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;github-与博客&quot;&gt;GitHub 与博客&lt;/h3&gt;
+
+&lt;p&gt;GitHub 上的记录：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/blog/2021-github.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;226 contributions，比 2020 年的 303 次进一步下降；&lt;/li&gt;
+  &lt;li&gt;最长连击记录 10 天，2021-11-08 到 2021-11-17；&lt;/li&gt;
+  &lt;li&gt;有 10 个自然周没有任何记录。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;这些指标能一定程度反映对技术的关注和参与度，需要继续提醒自己警惕，技术仍是立身之本。&lt;/p&gt;
+
+&lt;p&gt;博客上今年只发了廖廖 5 篇文章，平均每个季度一篇的节奏。&lt;/p&gt;
+
+&lt;p&gt;我可能陷入了一个误区，每次有值得一写的话题，就会随手记到一个清单，想着后面花点时间回顾下，做到干货足够多，相关知识点都讲到，然后再发出去，殊不知后面可能再不会花时间去看了。日积月累，这个清单里已经攒了不下上百条，它们之中的大多数，大概率是不会转化成输出了。&lt;/p&gt;
+
+&lt;p&gt;往后可以尝试转变思路，「及时输出」，热乎的现场，热乎的记忆，转化成热乎的文章，有不完善的地方「迭代」即可。&lt;/p&gt;
+
+&lt;p&gt;偶尔「草率」一点，没什么大不了的。&lt;/p&gt;
+
+&lt;h3 id=&quot;工作&quot;&gt;工作&lt;/h3&gt;
+
+&lt;p&gt;不好不坏，工作内容上以技术类为主，相对能比较专心纯粹地做事，算是我比较喜欢的节奏，要是更不卷就更好了。dddd，不多言。&lt;/p&gt;
+
+&lt;h3 id=&quot;投资&quot;&gt;投资&lt;/h3&gt;
+
+&lt;p&gt;以指数基金投资为主，受中丐互怜的拖累，今年整体收益负几个点，不过心态还好，相信时间维度拉长结果不会差。&lt;/p&gt;
+
+&lt;h3 id=&quot;其它&quot;&gt;其它&lt;/h3&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;看了下三年前的年度盘点，发现吉他那时候就买了，而今技术也没有什么进步，还没有放弃治疗，继续挣扎；&lt;/li&gt;
+  &lt;li&gt;今年的旅行记录为 0，没有到过武汉和家乡以外的地方，希望新的一年疫情消散，想去哪的时候就能出发。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;结语&quot;&gt;结语&lt;/h2&gt;
+
+&lt;p&gt;流水账记完了，犹豫该不该来点正能量 FLAG，就如那些「人间清醒」的反鸡汤所言，今天的我和昨天的我并没有什么两样，并不会因为年份加一就有什么焕然一新。&lt;/p&gt;
+
+&lt;p&gt;那就祝自己和大家新年快乐，健康平安吧。&lt;/p&gt;
+
+&lt;p&gt;慢慢的，把眼下的日子过下去，就好。&lt;/p&gt;</content><author><name>Zhuang Ma</name></author><category term="Blog" /><summary type="html">对于 2021 年，如果仅从岁月流逝的角度，当然是期望时光时光慢些吧；如果从这一年外界的疯狂变幻来讲，又想对它说慢走不送。但终会无力地看清，时间的洪流上并无刻度，你喜欢或者不喜欢，它并不在意，兀自「逝者如斯夫，不舍昼夜」。</summary></entry><entry><title type="html">如何让 Spring Security 「少管闲事」</title><link href="https://mazhuang.org/2021/12/26/spring-security/" rel="alternate" type="text/html" title="如何让 Spring Security 「少管闲事」" /><published>2021-12-26T00:00:00+08:00</published><updated>2021-12-26T00:00:00+08:00</updated><id>https://mazhuang.org/2021/12/26/spring-security</id><content type="html" xml:base="https://mazhuang.org/2021/12/26/spring-security/">&lt;p&gt;记两种让 Spring Security「少管闲事」的方法。&lt;/p&gt;
+
+&lt;h2 id=&quot;遇到问题&quot;&gt;遇到问题&lt;/h2&gt;
+
+&lt;p&gt;一个应用对外提供 Rest 接口，接口的访问认证通过 Spring Security OAuth2 控制，token 形式为 JWT。因为一些原因，某一特定路径前缀（假设为 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/custom/&lt;/code&gt;）的接口需要使用另外一种自定义的认证方式，token 是一串无规则的随机字符串。两种认证方式的 token 都是在 Headers 里传递，形式都是 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Authorization: bearer xxx&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;所以当外部请求这个应用的接口时，情况示意如下：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/posts/java/spring-security-traffic.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;这时，问题出现了。&lt;/p&gt;
+
+&lt;p&gt;我通过 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;WebSecurityConfigurerAdapter&lt;/code&gt; 配置 Spring Security 将 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/custom/&lt;/code&gt; 前缀的请求直接放行：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;httpSecurity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;authorizeRequests&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;regexMatchers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;^(?!/custom/).*$&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;permitAll&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;但请求 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/custom/&lt;/code&gt; 前缀的接口仍然被拦截，报了如下错误：&lt;/p&gt;
+
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;error&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;invalid_token&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;&quot;error_description&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Cannot convert access token to JSON&quot;&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;分析问题&quot;&gt;分析问题&lt;/h2&gt;
+
+&lt;p&gt;从错误提示首先可以通过检查排除掉 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CustomWebFilter&lt;/code&gt; 的嫌疑，自定义认证方式的 token 不是 JSON 格式，它里面自然也不然尝试去将其转换成 JSON。&lt;/p&gt;
+
+&lt;p&gt;那推测问题出在 Spring Security 「多管闲事」，拦截了不该拦截的请求上。&lt;/p&gt;
+
+&lt;p&gt;经过一番面向搜索编程和源码调试，找到抛出以上错误信息的位置是在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;JwtAccessTokenConverter.decode&lt;/code&gt; 方法里：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;protected&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Map&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;decode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;token&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// 下面这行会抛出异常&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;Jwt&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jwt&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;JwtHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;decodeAndVerify&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;token&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;verifier&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// ... some code here&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;throw&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;InvalidTokenException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Cannot convert access token to JSON&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;调用堆栈如下：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/posts/java/spring-security-callstack.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;从调用的上下文可以看出（高亮那一行），执行逻辑在一个名为 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;OAuth2AuthenticationProcessingFilter&lt;/code&gt; 的 Filter 里，会尝试从请求中提取 Bearer Token，然后做一些处理（此处是 JWT 转换和校验等）。这个 Filter 是 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ResourceServerSecurityConfigurer.configure&lt;/code&gt; 中初始化的，我们的应用同时也是作为一个 Spring Security OAuth2 Resource Server，从类名可以看出是对此的配置。&lt;/p&gt;
+
+&lt;h2 id=&quot;解决问题&quot;&gt;解决问题&lt;/h2&gt;
+
+&lt;p&gt;找到了问题所在之后，经过自己的思考和同事间的讨论，得出了两种可行的解决方案。&lt;/p&gt;
+
+&lt;h3 id=&quot;方案一让特定的请求跳过-oauth2authenticationprocessingfilter&quot;&gt;方案一：让特定的请求跳过 OAuth2AuthenticationProcessingFilter&lt;/h3&gt;
+
+&lt;p&gt;这个方案的思路是通过 AOP，在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;OAuth2AuthenticationProcessingFilter.doFilter&lt;/code&gt; 方法执行前做个判断&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;如果请求路径是以 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/custom/&lt;/code&gt; 开头，就跳过该 Filter 继续往后执行；&lt;/li&gt;
+  &lt;li&gt;如果请求路径非 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/custom/&lt;/code&gt; 开头，正常执行。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;关键代码示意：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Aspect&lt;/span&gt;
+&lt;span class=&quot;nd&quot;&gt;@Component&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;AuthorizationHeaderAspect&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nd&quot;&gt;@Pointcut&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;execution(* org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter.doFilter(..))&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;securityOauth2DoFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{}&lt;/span&gt;
+
+    &lt;span class=&quot;nd&quot;&gt;@Around&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;securityOauth2DoFilter()&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;skipNotCustom&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ProceedingJoinPoint&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;joinPoint&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Throwable&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;joinPoint&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getArgs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;instanceof&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HttpServletRequest&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;instanceof&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;javax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;servlet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;ServletResponse&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;instanceof&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FilterChain&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;joinPoint&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;proceed&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;HttpServletRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;request&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;HttpServletRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;];&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getRequestURI&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;startsWith&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/custom/&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;joinPoint&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;proceed&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;FilterChain&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;doFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ServletRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ServletResponse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]);&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;方案二调整-filter-顺序&quot;&gt;方案二：调整 Filter 顺序&lt;/h3&gt;
+
+&lt;p&gt;如果能让请求先到达我们自定义的 Filter，请求路径以 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/custom/&lt;/code&gt; 开头的，处理完自定义 token 校验等逻辑，然后将 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Authorization&lt;/code&gt; Header 去掉（在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;OAuth2AuthenticationProcessingFilter.doFilter&lt;/code&gt; 中，如果取不到 Bearer Token，不会抛异常），其它请求直接放行，也是一个可以达成目标的思路。&lt;/p&gt;
+
+&lt;p&gt;但现状是自定义的 Filter 默认是在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;OAuth2AuthenticationProcessingFilter&lt;/code&gt; 后执行的，如何实现它们的执行顺序调整呢？&lt;/p&gt;
+
+&lt;p&gt;在我们前面找到的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;OAuth2AuthenticationProcessingFilter&lt;/code&gt; 注册的地方，也就是 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ResourceServerSecurityConfigurer.configure&lt;/code&gt; 方法里，我们可以看到 Filter 是通过以下这种写法添加的：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;configure&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;HttpSecurity&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// ... some code here&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;authorizeRequests&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;expressionHandler&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;expressionHandler&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;and&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addFilterBefore&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resourcesServerFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;AbstractPreAuthenticatedProcessingFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;exceptionHandling&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;accessDeniedHandler&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;accessDeniedHandler&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;authenticationEntryPoint&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;authenticationEntryPoint&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;核心方法是 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;HttpSecurity.addFilterBefore&lt;/code&gt;，说起 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;HttpSecurity&lt;/code&gt;，我们有印象啊……前面通过 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;WebSecurityConfigurerAdapter&lt;/code&gt; 来配置请求放行时入参是它，能否在那个时机将自定义 Filter 注册到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;OAuth2AuthenticationProcessingFilter&lt;/code&gt; 之前呢？&lt;/p&gt;
+
+&lt;p&gt;我们将前面配置放行规则处的代码修改如下：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;httpSecurity&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;authorizeRequests&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;registry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;regexMatchers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;^(?!/custom/).*$&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;permitAll&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;and&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;addFilterAfter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CustomWebFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;X509AuthenticationFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;注：&lt;/strong&gt; CustomWebFilter 改为直接 new 出来的，手动添加到 Security Filter Chain，不再自动注入到其它 Filter Chain。&lt;/p&gt;
+
+&lt;p&gt;为什么是将自定义 Filter 添加到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;X509AuthenticationFilter.class&lt;/code&gt; 之后呢？可以参考 spring-security-config 包的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FilterComparator&lt;/code&gt; 里预置的 Filter 顺序来做决定，从前面的代码可知 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;OAuth2AuthenticationProcessingFilter&lt;/code&gt; 是添加到 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;AbstractPreAuthenticatedProcessingFilter.class&lt;/code&gt; 之前的，而在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FilterComparator&lt;/code&gt; 预置的顺序里，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;X509AuthenticationFilter.class&lt;/code&gt; 是在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;AbstractPreAuthenticatedProcessingFilter.class&lt;/code&gt; 之前的，我们这样添加就足以确保自定义 Filter 在 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;OAuth2AuthenticationProcessingFilter&lt;/code&gt; 之前。&lt;/p&gt;
+
+&lt;p&gt;做了以上修改，自定义 Filter 已经在我们预期的位置了，那么我们在这个 Filter 里面，对请求路径以 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/custom/&lt;/code&gt; 开头的做必要处理，然后清空 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Authorization&lt;/code&gt; Header 即可，关键代码示意如下：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;doFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ServletRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;servletRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ServletResponse&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;servletResponse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FilterChain&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filterChain&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IOException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ServletException&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;HttpServletRequest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;request&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;HttpServletRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;servletRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;request&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getServletPath&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;startsWith&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/custom/&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// do something here&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+        &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;authorizationHeader&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;Authorization&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;HttpServletRequestWrapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requestWrapper&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HttpServletRequestWrapper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;HttpServletRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;servletRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+            &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;authorizationHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;equalsIgnoreCase&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+            &lt;span class=&quot;nd&quot;&gt;@Override&lt;/span&gt;
+            &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Enumeration&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getHeaders&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;authorizationHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;equalsIgnoreCase&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Vector&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;elements&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getHeaders&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;};&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;filterChain&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;doFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;requestWrapper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;servletResponse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;filterChain&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;doFilter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;servletRequest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;servletResponse&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;小结&quot;&gt;小结&lt;/h2&gt;
+
+&lt;p&gt;经过尝试，两种方案都能满足需求，项目里最终使用了方案一，相信也还有其它的思路可以解决问题。&lt;/p&gt;
+
+&lt;p&gt;经过这一过程，也暴露出了对 Spring Security 的理解不够的问题，后续需要抽空做一些更深入的学习。&lt;/p&gt;
+
+&lt;h2 id=&quot;参考&quot;&gt;参考&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.cnblogs.com/alalazy/p/13179608.html&quot;&gt;https://www.cnblogs.com/alalazy/p/13179608.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Zhuang Ma</name></author><category term="Java" /><summary type="html">记两种让 Spring Security「少管闲事」的方法。</summary></entry><entry><title type="html">读叔本华《人生的智慧》</title><link href="https://mazhuang.org/2021/10/25/the-wisdom-of-life/" rel="alternate" type="text/html" title="读叔本华《人生的智慧》" /><published>2021-10-25T00:00:00+08:00</published><updated>2021-10-25T00:00:00+08:00</updated><id>https://mazhuang.org/2021/10/25/the-wisdom-of-life</id><content type="html" xml:base="https://mazhuang.org/2021/10/25/the-wisdom-of-life/">&lt;p&gt;最近读完了这本小书，想写点什么，但又似乎暂时表达不出，先挖个读书笔记的坑在这里，后面有所感了也许会填上。&lt;/p&gt;
+
+&lt;p&gt;读此书的过程中，感觉前半部分比较有意思，后半部分都是在大讲所谓骑士荣誉，看得很烦。&lt;/p&gt;
+
+&lt;h2 id=&quot;摘录&quot;&gt;摘录&lt;/h2&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;美貌是一封公开的推荐信。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;只要对生活稍作考察，我们就会发现，人类幸福的两大宿敌是痛苦和无聊。我再补充一下，当我们足够幸运逃离了其中一端时，我们就接近了另外一端，也就是说，免得了痛苦却免不了无聊，反之亦然。实际上，生活就像是钟摆一般，在这两端之间或激烈或温和地来回摇摆——要么痛苦，要么无聊，反正总有一项逃不掉。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;麻木迟钝是一种摆在脸上、印在心底的空虚状态——人们对外部发生的一些琐碎的事情表现出不停的、强烈的关注，同样也暴露了他们内在的空虚。这就是无聊的真正根源——内心空虚的人为了寻求刺激，不断用各种无谓的东西充塞大脑和心灵，单调又乏味。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;根据亚里士多德的学说，幸福在于能够施展才能；斯托拜乌在他对逍遥派（即亚里士多德学派）哲学的阐述中也说了，「幸福意味着充满活力地做你擅长的事并获得预期的结果」。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;我们乐于受人尊敬，并不是热爱「尊敬」本身，我们爱是只是受人尊敬带来的好处。&lt;/p&gt;
+&lt;/blockquote&gt;</content><author><name>Zhuang Ma</name></author><category term="Blog" /><summary type="html">最近读完了这本小书，想写点什么，但又似乎暂时表达不出，先挖个读书笔记的坑在这里，后面有所感了也许会填上。</summary></entry><entry><title type="html">利用 XXL-JOB 实现灵活控制的分片处理</title><link href="https://mazhuang.org/2021/06/19/xxl-job-sharding/" rel="alternate" type="text/html" title="利用 XXL-JOB 实现灵活控制的分片处理" /><published>2021-06-19T00:00:00+08:00</published><updated>2021-06-19T00:00:00+08:00</updated><id>https://mazhuang.org/2021/06/19/xxl-job-sharding</id><content type="html" xml:base="https://mazhuang.org/2021/06/19/xxl-job-sharding/">&lt;p&gt;本文讲述了一种利用 XXL-JOB 来进行分片任务处理的方法，另外加入对执行节点数的灵活控制。&lt;/p&gt;
+
+&lt;h2 id=&quot;场景&quot;&gt;场景&lt;/h2&gt;
+
+&lt;p&gt;现在一张数据表里有大量数据需要某个服务端应用来处理，要求：&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;能够并行处理；&lt;/li&gt;
+  &lt;li&gt;能够较灵活地控制并行任务数量。&lt;/li&gt;
+  &lt;li&gt;压力较均衡地分散到不同的服务器节点；&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;思路&quot;&gt;思路&lt;/h2&gt;
+
+&lt;p&gt;因为需要并行处理同一张数据表里的数据，所以比较自然地想到了分片查询数据，可以利用对 id 取模的方法进行分片，避免同一条数据被重复处理。&lt;/p&gt;
+
+&lt;p&gt;根据第 1、2 点要求，本来想通过对线程池的动态配置来实现，但结合第 3 点来考虑，服务器节点数量有可能会变化，节点之间相互无感知无通信，自己在应用内实现一套调度机制可能会很复杂。&lt;/p&gt;
+
+&lt;p&gt;如果有现成的独立于这些服务器节点之外的调度器就好了——顺着这个思路，就想到了已经接入的分布式任务调度平台 XXL-JOB，而在阅读其 &lt;a href=&quot;https://www.xuxueli.com/xxl-job/&quot;&gt;官方文档&lt;/a&gt; 后发现「分片广播 &amp;amp; 动态分片」很贴合这种场景。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/posts/java/xxl-job-sharding-broadcast.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;方案&quot;&gt;方案&lt;/h2&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;利用 XXL-JOB 的路由策略「分片广播」来调度定时任务；&lt;/li&gt;
+  &lt;li&gt;通过任务参数传入执行任务节点数量；&lt;/li&gt;
+  &lt;li&gt;定时任务逻辑里，根据获取到的分片参数、执行任务节点数量，决策当前节点是否需要执行，分片查询数据并处理：
+    &lt;ul&gt;
+      &lt;li&gt;如果 &lt;em&gt;分片序号 &amp;gt; (执行任务节点数量 - 1)&lt;/em&gt;，则当前节点不执行任务，直接返回；&lt;/li&gt;
+      &lt;li&gt;否则，取 &lt;em&gt;分片序号&lt;/em&gt; 和 &lt;em&gt;执行任务节点数量&lt;/em&gt; 作为分片参数，查询数据并处理。&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;这样，我们可以实现灵活调度 [1, N] 个节点并行执行任务处理数据。&lt;/p&gt;
+
+&lt;h2 id=&quot;主要代码示例&quot;&gt;主要代码示例&lt;/h2&gt;
+
+&lt;p&gt;JobHandler 示例：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@XxlJob&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;demoJobHandler&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;execute&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;param&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getJobParam&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;StringUtils&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;isBlank&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;param&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;任务参数为空&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;handleFail&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// 执行任务节点数量&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;executeNodeNum&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;valueOf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;param&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 分片序号&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shardIndex&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getShardIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// 分片总数&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shardTotal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getShardTotal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executeNodeNum&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;executeNodeNum&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shardTotal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;执行任务节点数量取值范围[1,节点总数]&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;handleFail&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shardIndex&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;executeNodeNum&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;当前分片 {} 无需执行&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shardIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;handleSuccess&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;shardTotal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;executeNodeNum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// 分片查询数据并处理&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shardIndex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shardTotal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;nc&quot;&gt;XxlJobHelper&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;handleSuccess&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;分片查询数据示例：&lt;/p&gt;
+
+&lt;div class=&quot;language-sql highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;select&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;field1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;field2&lt;/span&gt; 
+&lt;span class=&quot;k&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;table_name&lt;/span&gt; 
+&lt;span class=&quot;k&quot;&gt;where&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;...&lt;/span&gt; 
+    &lt;span class=&quot;k&quot;&gt;and&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;mod&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shardTotal&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shardIndex&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt; 
+&lt;span class=&quot;k&quot;&gt;order&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;by&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;limit&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;#&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;rows&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;进一步思考&quot;&gt;进一步思考&lt;/h2&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;如果需要更大的并发量，需要有大于应用节点数量的任务并行，如何处理？&lt;/p&gt;
+
+    &lt;p&gt;两种思路：&lt;/p&gt;
+
+    &lt;ul&gt;
+      &lt;li&gt;通过任务参数传入一个并发数，单个节点在处理任务时，将查询到的数据按这个数字进行再分片，交由线程池并行处理；&lt;/li&gt;
+      &lt;li&gt;配置 M 个定时任务，指定相同的 JobHandler，给它们编号 0、1、2…M，并将定时任务编号和 M 这两个数，由任务参数传入，定时任务逻辑里，先根据分片参数、定时任务编号、M，重新计算出新的分片参数，如 &lt;em&gt;分片序号 = (分片序号 * M) + 定时任务编号&lt;/em&gt;，&lt;em&gt;分片总数 = 分片总数 * M&lt;/em&gt;，再查询数据并处理。&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;如果有可能频繁调整任务执行逻辑，包括可能要新增任务参数等，而不想重启服务器，如何解决？&lt;/p&gt;
+
+    &lt;p&gt;可以考虑使用 XXL-JOB 的「GLUE模式」任务，能够在线编辑和更新定时任务执行逻辑。&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;参考&quot;&gt;参考&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.xuxueli.com/xxl-job/&quot;&gt;分布式任务调度平台XXL-JOB&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Zhuang Ma</name></author><category term="Java" /><summary type="html">本文讲述了一种利用 XXL-JOB 来进行分片任务处理的方法，另外加入对执行节点数的灵活控制。</summary></entry><entry><title type="html">解决 IntelliJ IDEA 启动报 Unsupported Java Version 的问题</title><link href="https://mazhuang.org/2021/03/27/intellij-idea-unsupported-java-version/" rel="alternate" type="text/html" title="解决 IntelliJ IDEA 启动报 Unsupported Java Version 的问题" /><published>2021-03-27T00:00:00+08:00</published><updated>2021-03-27T00:00:00+08:00</updated><id>https://mazhuang.org/2021/03/27/intellij-idea-unsupported-java-version</id><content type="html" xml:base="https://mazhuang.org/2021/03/27/intellij-idea-unsupported-java-version/">&lt;p&gt;今天用我老掉牙的 MacBook Pro 2015 跑 IDEA 时，感觉略卡，于是在网上找了一些教程来优化它的启动和运行速度。&lt;/p&gt;
+
+&lt;h2 id=&quot;遇到问题&quot;&gt;遇到问题&lt;/h2&gt;
+
+&lt;p&gt;有不少网友提到的一个措施是修改 IDEA 自身运行的 Runtime，即 JDK 版本。也决定试一下看看效果，于是安装了 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Choose Runtime&lt;/code&gt; 插件，然后将默认的 JetBrains Runtime 由 IDEA 自带 JDK 11 换成了我自己安装的 JDK1.8.0_271，然后……IDEA 就再也起不来了，启动就报如下这个错误：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/posts/java/idea-unsupported-java-version.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Unsupported Java Version
+
+Java 11 or newer is required to run the IDE.
+Please contact support at https://jb.gg/ide/critical-startup-errors
+
+Your JRE: 1.8.0_271-b09 x86_64 (Oracle Corporation)
+/Library/Java/JavaVirtualMachines/jdk1.8.0_271.jdk/Contents/Home/jre
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;解决方法&quot;&gt;解决方法&lt;/h2&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;想办法进设置 Runtime 的地方，将配置再改回来。&lt;/p&gt;
+
+    &lt;p&gt;但并没有找到办法进设置。失败&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;想办法找到存储这个配置项的配置文件，手动修改回来。&lt;/p&gt;
+
+    &lt;p&gt;在网上搜、按经验找了 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;~&lt;/code&gt;、&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;~/Library/Preferences&lt;/code&gt; 等文件夹，均未找到正在使用的 2020.3 版本的配置文件。失败&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;此时留意到以上错误提醒里有个链接，打开链接寻找线索。&lt;/p&gt;
+
+    &lt;ul&gt;
+      &lt;li&gt;打开 &lt;a href=&quot;https://jb.gg/ide/critical-startup-errors&quot;&gt;https://jb.gg/ide/critical-startup-errors&lt;/a&gt;，在该页面并未直接找到答案，但在侧边栏发现了线索链接。&lt;/li&gt;
+      &lt;li&gt;跳转到 &lt;a href=&quot;https://intellij-support.jetbrains.com/hc/en-us/articles/206544879-Selecting-the-JDK-version-the-IDE-will-run-under&quot;&gt;Selecting the JDK version the IDE will run under&lt;/a&gt;，在正文的 macOS 部分，提到了如果配置过 IDE JDK Version，会保存在配置文件目录下的 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&amp;lt;product&amp;gt;.jdk&lt;/code&gt; 文件里，并提供了配置文件目录相关的链接。&lt;/li&gt;
+      &lt;li&gt;跳转到 &lt;a href=&quot;https://intellij-support.jetbrains.com/hc/en-us/articles/206544519&quot;&gt;Directories used by the IDE to store settings, caches, plugins and logs&lt;/a&gt;，可以找到 macOS 下 IDEA 2020.3 的配置文件路径 idea.config.path 为 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;~/Library/Application Support/JetBrains/IntelliJIdea2020.3&lt;/code&gt;，打开该目录，果然发现了 idea.jdk 文件。&lt;/li&gt;
+      &lt;li&gt;将 idea.jdk 文件删除，重新打开 IDEA，问题解决。&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;小结&quot;&gt;小结&lt;/h2&gt;
+
+&lt;p&gt;当遇到问题时，最应该关注的是错误提示里的信息，很可能解决方案或线索就在里面。&lt;/p&gt;
+
+&lt;p&gt;如果以上解决不了问题，在官方文档/网站等渠道寻找解决方案会比盲目全网搜索更精准。如 &lt;a href=&quot;https://www.jetbrains.com/help/idea/tuning-the-ide.html#config-directory&quot;&gt;Configuration directory&lt;/a&gt; 这个链接里就清楚地描述了 IntelliJ IDEA 配置文件的存放位置。&lt;/p&gt;</content><author><name>Zhuang Ma</name></author><category term="Java" /><summary type="html">今天用我老掉牙的 MacBook Pro 2015 跑 IDEA 时，感觉略卡，于是在网上找了一些教程来优化它的启动和运行速度。</summary></entry><entry><title type="html">代码审查：从 ArrayList 说线程安全</title><link href="https://mazhuang.org/2021/03/13/talk-about-threadsafe-with-arraylist/" rel="alternate" type="text/html" title="代码审查：从 ArrayList 说线程安全" /><published>2021-03-13T00:00:00+08:00</published><updated>2021-03-13T00:00:00+08:00</updated><id>https://mazhuang.org/2021/03/13/talk-about-threadsafe-with-arraylist</id><content type="html" xml:base="https://mazhuang.org/2021/03/13/talk-about-threadsafe-with-arraylist/">&lt;p&gt;&lt;strong&gt;更新：&lt;/strong&gt; 此文发到 &lt;a href=&quot;https://v2ex.com/t/761286&quot;&gt;V2EX&lt;/a&gt; 后，有网友指出文中的案例代码改写为 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;List&amp;lt;String&amp;gt; result = paramList.parallelStream().map(this::doSomething).collect(toList());&lt;/code&gt; 就能很好的解决，确实如此，当时代码审查时意识到这里有线程安全问题，然后我就有点思维定势，只想着用解决线程安全问题的方式去处理，没有换个角度想到这种更好的写法。以下仍然保留原文，阅读重点可以放「线程安全」的分析理解上，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;parallelStream&lt;/code&gt; 权当为了举例而简写的一种多线程写法。实际遇上它时可以优先用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;parallelStream.map().collect()&lt;/code&gt; 和 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;parallelStream.flatMap().collect()&lt;/code&gt; 这类方案。&lt;/p&gt;
+
+&lt;p&gt;以下为原正文。&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;本文从代码审查过程中发现的一个 ArrayList 相关的「线程安全」问题出发，来剖析和理解线程安全。&lt;/p&gt;
+
+&lt;h2 id=&quot;案例分析&quot;&gt;案例分析&lt;/h2&gt;
+
+&lt;p&gt;前两天在代码 Review 的过程中，看到有小伙伴用了类似以下的写法：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resultList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;paramList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;parallelStream&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;forEach&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;doSomething&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;resultList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;});&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;印象中 ArrayList 是线程不安全的，而这里会多线程改写同一个 ArrayList 对象，感觉这样的写法会有问题，于是看了下 ArrayList 的实现来确认问题，同时复习下相关知识。&lt;/p&gt;
+
+&lt;p&gt;先贴个概念：&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;strong&gt;线程安全&lt;/strong&gt; 是程式设计中的术语，指某个函数、函数库在多线程环境中被调用时，能够正确地处理多个线程之间的共享变量，使程序功能正确完成。 ——维基百科&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;我们来看下 ArrayList 源码里与本话题相关的关键信息：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;E&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;AbstractList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;E&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;
+        &lt;span class=&quot;kd&quot;&gt;implements&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;E&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;RandomAccess&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Cloneable&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;java&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;io&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;Serializable&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+    
+    &lt;span class=&quot;cm&quot;&gt;/**
+     * The array buffer into which the elements of the ArrayList are stored.
+     * The capacity of the ArrayList is the length of this array buffer... 
+     */&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;transient&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;elementData&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// non-private to simplify nested class access&lt;/span&gt;
+
+    &lt;span class=&quot;cm&quot;&gt;/**
+     * The size of the ArrayList (the number of elements it contains).
+     */&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+
+    &lt;span class=&quot;cm&quot;&gt;/**
+     * Appends the specified element to the end of this list...
+     */&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;boolean&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;E&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;ensureCapacityInternal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;// Increments modCount!!&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;elementData&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;从中我们可以关注到关于 ArrayList 的几点信息：&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;使用数组存储数据，即 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;使用 int 成员变量 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;size&lt;/code&gt; 记录实际元素个数&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;add&lt;/code&gt; 方法逻辑与执行顺序：
+    &lt;ul&gt;
+      &lt;li&gt;执行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ensureCapacityInternal(size + 1)&lt;/code&gt;：确认 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData&lt;/code&gt; 的容量是否够用，不够用的话扩容一半（申请一个新的大数组，将 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData&lt;/code&gt; 里的原有内容 copy 过去，然后将新的大数组赋值给 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData&lt;/code&gt;）&lt;/li&gt;
+      &lt;li&gt;执行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData[size] = e;&lt;/code&gt;&lt;/li&gt;
+      &lt;li&gt;执行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;size++&lt;/code&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;为了方便理解这里讨论的「线程安全问题」，我们选一个最简单的执行路径来分析，假设有 A 和 B 两个线程同时调用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ArrayList.add&lt;/code&gt; 方法，而此时 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData&lt;/code&gt; 容量为 8，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;size&lt;/code&gt; 为 7，足以容纳一个新增的元素，那么可能发生什么现象呢？&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/posts/java/thread-safety-arraylist-add.png&quot; alt=&quot;Thread Safety ArrayList Add&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;一种可能的执行顺序是：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;线程 A 和 B 同时执行了 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ensureCapacityInternal(size + 1)&lt;/code&gt;，因 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;7 + 1&lt;/code&gt; 并没超过 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData&lt;/code&gt; 的容量 8，所以并未扩容&lt;/li&gt;
+  &lt;li&gt;线程 A 先执行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData[size++] = e;&lt;/code&gt;，此时 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;size&lt;/code&gt; 变为 8&lt;/li&gt;
+  &lt;li&gt;线程 B 执行 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData[size++] = e;&lt;/code&gt;，因为 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData&lt;/code&gt; 数组长度为 8，却访问 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;elementData[8]&lt;/code&gt;，数组下标越界&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;程序会抛出异常，无法正常执行完，根据前文提到的线程安全的定义，很显然这已经是属于线程不安全的情况了。&lt;/p&gt;
+
+&lt;h2 id=&quot;构造示例代码验证&quot;&gt;构造示例代码验证&lt;/h2&gt;
+
+&lt;p&gt;有了以上的理解之后，我们来写一段简单的示例代码，验证以上问题确实可能发生：&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resultList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;paramList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;paramList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;paramList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;parallelStream&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;forEach&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;resultList:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;执行以上代码有可能表现正常，但更可能是遇到以下异常：&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Exception in thread &quot;main&quot; java.lang.ArrayIndexOutOfBoundsException
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:423)
+	at java.util.concurrent.ForkJoinTask.getThrowableException(ForkJoinTask.java:598)
+	at java.util.concurrent.ForkJoinTask.reportException(ForkJoinTask.java:677)
+	at java.util.concurrent.ForkJoinTask.invoke(ForkJoinTask.java:735)
+	at java.util.stream.ForEachOps$ForEachOp.evaluateParallel(ForEachOps.java:160)
+	at java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateParallel(ForEachOps.java:174)
+	at java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:233)
+	at java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:418)
+	at java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:583)
+	at concurrent.ConcurrentTest.main(ConcurrentTest.java:18)
+Caused by: java.lang.ArrayIndexOutOfBoundsException: 1234
+	at java.util.ArrayList.add(ArrayList.java:465)
+	at java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1384)
+	at java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:482)
+	at java.util.stream.ForEachOps$ForEachTask.compute(ForEachOps.java:291)
+	at java.util.concurrent.CountedCompleter.exec(CountedCompleter.java:731)
+	at java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:289)
+	at java.util.concurrent.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1067)
+	at java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1703)
+	at java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:172)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;从我这里试验的情况来看，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;length&lt;/code&gt; 值小的时候，因为达到容量边缘需要扩容的次数少，不易重现，将 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;length&lt;/code&gt; 值调到比较大时，异常抛出率就很高了。&lt;/p&gt;
+
+&lt;p&gt;实际上除了抛出这种异常外，以上场景还可能造成数据覆盖/丢失、ArrayList 里实际存放的元素个数与 size 值不符等其它问题，感兴趣的同学可以继续挖掘一下。&lt;/p&gt;
+
+&lt;h2 id=&quot;解决方案&quot;&gt;解决方案&lt;/h2&gt;
+
+&lt;p&gt;对这类问题常见的有效解决思路就是对共享的资源访问加锁。&lt;/p&gt;
+
+&lt;p&gt;我提出代码审查的修改意见后，小伙伴将文首代码里的&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resultList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;修改为了&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resultList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Collections&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;synchronizedList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;());&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;这样实际最终会使用 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;SynchronizedRandomAccessList&lt;/code&gt;，看它的实现类，其实里面也是加锁，它内部持有一个 List，用 synchronized 关键字控制对 List 的读写访问，这是一种思路——使用线程安全的集合类，对应的还可以使用 Vector 等其它类似的类来解决问题。&lt;/p&gt;
+
+&lt;p&gt;另外一种方思路是手动对关键代码段加锁，比如我们也可以将&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;resultList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;修改为&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;synchronized&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mutex&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;resultList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;小结&quot;&gt;小结&lt;/h2&gt;
+
+&lt;p&gt;Java 8 的并行流提供了很方便的并行处理、提升程序执行效率的写法，我们在编码的过程中，对用到多线程的地方要保持警惕，有意识地预防此类问题。&lt;/p&gt;
+
+&lt;p&gt;对应的，我们在做代码审查的过程中，也要对涉及到多线程使用的场景时刻绷着一根弦，在代码合入前把好关，将隐患拒之门外。&lt;/p&gt;
+
+&lt;h2 id=&quot;参考&quot;&gt;参考&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://zh.wikipedia.org/zh-hans/%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8&quot;&gt;线程安全——维基百科&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Zhuang Ma</name></author><category term="Java" /><summary type="html">更新： 此文发到 V2EX 后，有网友指出文中的案例代码改写为 List&amp;lt;String&amp;gt; result = paramList.parallelStream().map(this::doSomething).collect(toList()); 就能很好的解决，确实如此，当时代码审查时意识到这里有线程安全问题，然后我就有点思维定势，只想着用解决线程安全问题的方式去处理，没有换个角度想到这种更好的写法。以下仍然保留原文，阅读重点可以放「线程安全」的分析理解上，parallelStream 权当为了举例而简写的一种多线程写法。实际遇上它时可以优先用 parallelStream.map().collect() 和 parallelStream.flatMap().collect() 这类方案。</summary></entry></feed>
