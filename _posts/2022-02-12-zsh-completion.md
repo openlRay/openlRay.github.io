@@ -1,9 +1,9 @@
 ---
 layout: post
-title: 给 zsh 自定义命令添加参数自动补全
-categories: Shell
-description: 给 zsh 自定义命令添加参数自动补全
-keywords: zsh, 自动补全
+title: 在 Mac 下编译 chaosblade
+categories: 混沌工程
+description: 在 Mac 下编译 chaosblade
+keywords: 混沌工程, chaosblade
 ---
 
 有时我会自定义一些 zsh 命令，以便提升某些高频操作的效率。本文记录我给一个自定义命令添加参数自动补全的方法。
