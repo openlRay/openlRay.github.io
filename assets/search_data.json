@@ -1121,11 +1121,11 @@
     } ,
   
     {
-      "title"    : "给 zsh 自定义命令添加参数自动补全",
-      "category" : "Shell",
+      "title"    : "在 Mac 下编译 chaosblade",
+      "category" : "混沌工程",
       
       "url"      : "https://www.openlray.cn/2022/02/12/zsh-completion/",
-      "keywords" : "zsh, 自动补全"
+      "keywords" : "混沌工程, chaosblade"
     } ,
   
     {
@@ -1142,14 +1142,6 @@
       
       "url"      : "https://www.openlray.cn/2022/03/06/iphone-vs-xiaomi/",
       "keywords" : "iPhone, Xiaomi"
-    } ,
-  
-    {
-      "title"    : "修复 MacVim 9.0 的 Python3 支持",
-      "category" : "Vim",
-      
-      "url"      : "https://www.openlray.cn/2022/09/22/enable-python3-in-macvim/",
-      "keywords" : "MacVim, Python3"
     } ,
   
     {
