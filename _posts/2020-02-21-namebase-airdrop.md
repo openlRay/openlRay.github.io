@@ -50,7 +50,7 @@ Handshake Orgnization 可以提供 CA 的分布式替代方案，去中心化的
     cd hs-airdrop && npm install
     ```
 
-    我在 npm install 时遇到过两个问题，一个是 `Your PYTHONPATH points to a site-packages dir ...`，解决方案参考 <https://mazhuang.org/wiki/python/#your-pythonpath-points-to-a-site-packages-dir>，另一个是 `No Xcode or CLT version detected`，解决方案参考 <https://mazhuang.org/wiki/mac/#no-xcode-or-clt-version-detected>。
+    我在 npm install 时遇到过两个问题，一个是 `Your PYTHONPATH points to a site-packages dir ...`，解决方案参考 <https://www.openlray.cn/wiki/python/#your-pythonpath-points-to-a-site-packages-dir>，另一个是 `No Xcode or CLT version detected`，解决方案参考 <https://www.openlray.cn/wiki/mac/#no-xcode-or-clt-version-detected>。
 
 4. 第三步，找到你认为有资格的 SSH / PGP 私钥，一般是放在 ~/.ssh 目录下，比如我的是 ~/.ssh/id_rsa；
 

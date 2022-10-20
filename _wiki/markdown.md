@@ -20,14 +20,14 @@ mindmap: true
 ### 超链接
 
 ```
-[靠谱-ing](https://mazhuang.org)
+[靠谱-ing](https://www.openlray.cn)
 
-<https://mazhuang.org>
+<https://www.openlray.cn>
 ```
 
-[靠谱-ing](https://mazhuang.org)  
+[靠谱-ing](https://www.openlray.cn)  
 
-<https://mazhuang.org>
+<https://www.openlray.cn>
 
 ### 列表
 

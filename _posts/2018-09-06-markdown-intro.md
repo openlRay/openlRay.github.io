@@ -276,7 +276,7 @@ Markdown 支持行内式链接和引用式链接。
 **Markdown：**
 
 ```
-行内式 [博客](https://mazhuang.org "我的个人博客") 链接，带 title。
+行内式 [博客](https://www.openlray.cn "我的个人博客") 链接，带 title。
 
 行内式 [GitHub](https://github.com/mzlogin) 链接。
 
@@ -284,13 +284,13 @@ Markdown 支持行内式链接和引用式链接。
 
 引用式 [GitHub][2] 链接，带 title。
 
-[1]: https://mazhuang.org
+[1]: https://www.openlray.cn
 [2]: https://github.com/mzlogin "我的 GitHub 主页"
 ```
 
 **预览效果：**
 
-行内式 [博客](https://mazhuang.org "我的个人博客") 链接，带 title。
+行内式 [博客](https://www.openlray.cn "我的个人博客") 链接，带 title。
 
 行内式 [GitHub](https://github.com/mzlogin) 链接。
 
@@ -298,17 +298,17 @@ Markdown 支持行内式链接和引用式链接。
 
 引用式 [GitHub][2] 链接，带 title。
 
-[1]: https://mazhuang.org
+[1]: https://www.openlray.cn
 [2]: https://github.com/mzlogin "我的 GitHub 主页"
 
 **对应 HTML：**
 
 ```html
-<p>行内式 <a href="https://mazhuang.org" title="我的个人博客">博客</a> 链接，带 title。</p>
+<p>行内式 <a href="https://www.openlray.cn" title="我的个人博客">博客</a> 链接，带 title。</p>
 
 <p>行内式 <a href="https://github.com/mzlogin">GitHub</a> 链接。</p>
 
-<p>引用式 <a href="https://mazhuang.org">博客</a> 链接。</p>
+<p>引用式 <a href="https://www.openlray.cn">博客</a> 链接。</p>
 
 <p>引用式 <a href="https://github.com/mzlogin" title="我的 GitHub 主页">GitHub</a> 链接，带 title。</p>
 ```
@@ -320,17 +320,17 @@ Markdown 支持行内式链接和引用式链接。
 **Markdown：**
 
 ```
-![Alt text](https://mazhuang.org/favicon.ico "favicon")
+![Alt text](https://www.openlray.cn/favicon.ico "favicon")
 ```
 
 **预览效果：**
 
-![Alt text](https://mazhuang.org/favicon.ico "favicon")
+![Alt text](https://www.openlray.cn/favicon.ico "favicon")
 
 **对应 HTML：**
 
 ```html
-<img src="https://mazhuang.org/favicon.ico" alt="Alt text" title="favicon">
+<img src="https://www.openlray.cn/favicon.ico" alt="Alt text" title="favicon">
 ```
 
 ### 列表
@@ -635,7 +635,7 @@ https://github.com
 
 可以将公众号素材用 Markdown 编辑好后，贴到在线排版工具以后，复制到公众号编辑器里即可。有多种页面主题和代码主题可选择。
 
-我维护的工具地址：<https://md.mazhuang.org>
+我维护的工具地址：<https://md.www.openlray.cn>
 
 ![微信公众号](https://raw.githubusercontent.com/mzlogin/markdown-intro/master/assets/wechat-markdown.png)
 
@@ -652,17 +652,17 @@ https://github.com
 
 以上功能基本都可以用 VSCode + 插件 Markdown Preview Enhanced 实现。
 
-另外可以参考我以前的一篇博客 [关于 Markdown 的一些奇技淫巧](https://mazhuang.org/2017/09/01/markdown-odd-skills/)。
+另外可以参考我以前的一篇博客 [关于 Markdown 的一些奇技淫巧](https://www.openlray.cn/2017/09/01/markdown-odd-skills/)。
 
 ## 参考
 
 * [Markdown: Syntax - DARING FIREBALL](https://daringfireball.net/projects/markdown/syntax)
 * [Markdown - 维基百科](https://zh.wikipedia.org/wiki/Markdown)
 * [GitHub Flavored Markdown Spec](https://github.github.com/gfm/)
-* [关于 Markdown 的一些奇技淫巧](https://mazhuang.org/2017/09/01/markdown-odd-skills/)
+* [关于 Markdown 的一些奇技淫巧](https://www.openlray.cn/2017/09/01/markdown-odd-skills/)
 
 ---
 
 欢迎关注我的微信公众号，接收 markdown-intro 最新动态。
 
-<div align="center"><img width="192px" height="192px" src="https://mazhuang.org/assets/images/qrcode.jpg"/></div>
+<div align="center"><img width="192px" height="192px" src="https://www.openlray.cn/assets/images/qrcode.jpg"/></div>

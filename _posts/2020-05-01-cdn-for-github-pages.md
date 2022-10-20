@@ -30,7 +30,7 @@ keywords: GitHub, CDN, jsdelivr
 
 当然，因为页面自身还是在 GitHub Pages 托管，有时候首个请求还是会挺久才返回。
 
-改造后的效果可以打开 <https://mazhuang.org> 体验。
+改造后的效果可以打开 <https://www.openlray.cn> 体验。
 
 ## 方案考虑
 
@@ -144,4 +144,4 @@ jsDelivr 对 GitHub 的支持是作为重要特性来宣传的，官网的介绍
 
 ## 相关文章
 
-- [使用 jsDelivr 免费加速 GitHub Pages 博客的静态资源（二）](https://mazhuang.org/2020/10/07/cdn-for-github-pages-2/)
+- [使用 jsDelivr 免费加速 GitHub Pages 博客的静态资源（二）](https://www.openlray.cn/2020/10/07/cdn-for-github-pages-2/)
