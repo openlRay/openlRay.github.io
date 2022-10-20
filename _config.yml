@@ -185,3 +185,9 @@ google:
         sidebar-detail: true 
         content_header: false
         content_footer: false
+
+# ---------------- #
+#      百度统计      #
+# ---------------- #
+tongji:
+    analytics_id: 07c920dfa347edb3d4a8e013451431ce
