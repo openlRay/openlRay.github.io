@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 如何让 Spring Security 「少管闲事」
+title: 如何让 Spring Security 「少管闲事闲事」
 categories: [Java]
 description: 记两种让 Spring Security「少干点活」的方法。
 keywords: Spring Security, Java, Spring
