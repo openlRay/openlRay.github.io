@@ -4,8 +4,6 @@ title: 使用 iPhone 感觉不好的几点体验
 categories: Blog
 description: 使用 iPhone 有几点体验感觉不是很好，先记录一下，看以后是否会改观。
 keywords: iPhone, Xiaomi
-className: isTest
-htmlId: isTestId
 ---
 
 上周有天晚上加完班下雨了，媳妇儿开车顺道带我回家，到家后过了一会儿她突然说，「对了，给你个东西」，然后从包里拿出一个黑盒子递给我，我正坐那刷沙雕视频，也没细看，见挺小一个盒子，随口问了一句「啥？充电宝啊？」，得到的是充满鄙夷的回复，「我们家需要那玩意儿吗，我买那干啥？」，接过来翻面一看，哦豁原来是 iPhone 13 Pro。

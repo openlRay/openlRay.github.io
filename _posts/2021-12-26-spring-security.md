@@ -4,6 +4,8 @@ title: 如何让 Spring Security 「少管闲事」
 categories: [Java]
 description: 记两种让 Spring Security「少干点活」的方法。
 keywords: Spring Security, Java, Spring
+className: isTest1
+htmlId: isTestId1
 ---
 
 记两种让 Spring Security「少管闲事」的方法。
