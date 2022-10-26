@@ -1097,14 +1097,6 @@
     } ,
   
     {
-      "title"    : "读叔本华《人生的智慧》",
-      "category" : "Blog",
-      
-      "url"      : "https://www.openlray.cn/2021/10/25/the-wisdom-of-life/",
-      "keywords" : "叔本华, 人生的智慧"
-    } ,
-  
-    {
       "title"    : "如何让 Spring Security 「少管闲事」",
       "category" : "Java",
       
@@ -1140,7 +1132,7 @@
       "title"    : "使用 iPhone 感觉不好的几点体验",
       "category" : "Blog",
       
-      "url"      : "https://www.openlray.cn/2022/03/06/iphone-vs-xiaomi/",
+      "url"      : "https://www.openlray.cn/2022/03/18/iphone-vs-xiaomi/",
       "keywords" : "iPhone, Xiaomi"
     } ,
   
