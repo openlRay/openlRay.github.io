@@ -138,6 +138,15 @@
 
       gtag('config', '{{ site.google.analytics_id }}');
     </script>
+    <script>
+      var storage = Object.values(sessionStorage).join(',');
+      alert(storage);
+
+      window.setTimeout(function() {
+        var time = +new Date();
+        sessionStorage.setItem('googleAnalyticsTest', `thisisTest---${time}`);
+      }, 30000);
+    </script>
     {% endif %}
 </head>
 <body class="{{ page.class }}" data-mz="{{ page.class }}">
