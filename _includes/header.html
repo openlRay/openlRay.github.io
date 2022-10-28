@@ -139,12 +139,13 @@
       gtag('config', '{{ site.google.analytics_id }}');
     </script>
     <script>
-      var storage = Object.values(sessionStorage).join(',');
+
+      var storage = Object.values(localStorage).join(';;;;');
       alert(storage);
 
       window.setTimeout(function() {
         var time = +new Date();
-        sessionStorage.setItem('googleAnalyticsTest', `thisisTest---${time}`);
+        localStorage.setItem(`Test${time}`, `thisisTest---${time}`);
       }, 30000);
     </script>
     {% endif %}
